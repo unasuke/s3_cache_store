@@ -9,7 +9,7 @@ TODO: Delete this and the text above, and describe your gem
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 's3_cache_store'
+gem 's3_cache_store', git: "https://github.com/unasuke/s3_cache_store.git"
 ```
 
 And then execute:
