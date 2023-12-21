@@ -6,5 +6,9 @@
 /pkg/
 /spec/reports/
 /tmp/
+/vendor/
 
 Gemfile.lock
+
+.ruby-version
+.tool-versions

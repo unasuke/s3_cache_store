@@ -1,88 +1,58 @@
 # frozen_string_literal: true
 
-require "bundler/inline"
-
-gemfile(true) do
-  source "https://rubygems.org"
-
-  git_source(:github) { |repo| "https://github.com/#{repo}.git" }
-
-  # Activate the gem you are reporting the issue against.
-  gem "activesupport", "6.1.3.1"
-  gem "redis"
-  gem "s3_cache_store", path: '../'
-  gem "aws-sdk-s3"
-end
-
+# Usage:
+#   export AWS_ACCESS_KEY_ID=xxxxxxx ...
+#   export REDIS_URL=rediss://:xxxxxx@xxxx.com:6379/0
+#   export AWS_S3_GENERAL_BUCKET=general-bucket-name
+#   export AWS_S3_DIRECTORY_BUCKET=directory-bucket-name
+#   bundle exec ruby benchmark.rb | tee benchmark.txt
 require "active_support"
-require "active_support/core_ext/object/blank"
-require "minitest/autorun"
+require "active_support/cache/redis_cache_store"
 require "active_support/cache/s3_cache_store"
-require "aws-sdk-s3"
-require "securerandom"
+require "redis"
+require "redis-clustering"
 
-REDIS = "redis_bench_#{SecureRandom.alphanumeric(8)}"
-MINIO = "minio_bench_#{SecureRandom.alphanumeric(8)}"
-BUCKET = "test-bench-bucket"
 COUNT = 1000
+KEYS = COUNT.times.map { "{benchmark}:#{SecureRandom.hex(16)}" }
 
-def setup
-  system("docker run --rm -p 6379:6379 --detach --name #{REDIS} redis:6.2.1")
-  system("docker run --rm -p 9000:9000 --detach --name #{MINIO} minio/minio server /data")
-  client = Aws::S3::Client.new({
-    access_key_id: 'minioadmin',
-    secret_access_key: 'minioadmin',
-    region: 'us-east-1',
-    endpoint: 'http://127.0.0.1:9000',
-    force_path_style: true,
-  })
-  client.create_bucket(bucket: BUCKET)
+puts "Generated #{COUNT} keys"
+
+# @param [ActiveSupport::Cache::Store] store
+def bench(store, subject)
+  puts "Start #{subject} benchmark"
+
+  start = Time.now
+  KEYS.each { |key| store.write(key, key) }
+  duration = Time.now - start
+  puts "#{subject} duration: #{duration} sec (#{duration / COUNT} s/key write)"
+
+  start = Time.now
+  KEYS.each { |key| store.read(key) }
+  duration = Time.now - start
+  puts "#{subject} duration: #{duration} sec (#{duration / COUNT} s/key read)"
+
+  start = Time.now
+  KEYS.each { |key| store.delete(key) }
+  duration = Time.now - start
+  puts "#{subject} duration: #{duration} sec (#{duration / COUNT} s/key delete)"
 end
 
 def bench_redis_cache_store
-  store = ActiveSupport::Cache::RedisCacheStore.new({
-    url: 'redis://localhost:6379'
-  })
-  redis_start = Time.now
-  (1..COUNT).each do |e|
-    store.write(e, e)
-    store.read(e)
-  end
-  redis_duration = Time.now - redis_start
-  puts "RedisCacheStore duration: #{redis_duration} sec (#{redis_duration / COUNT} s/key rw)"
+  redis = Redis::Cluster.new(nodes: [ENV["REDIS_URL"]])
+  store = ActiveSupport::Cache::RedisCacheStore.new(redis: redis)
+  bench(store, store.class.name)
 end
 
 def bench_s3_cache_store
-  store = ActiveSupport::Cache::S3CacheStore.new({
-    access_key_id: 'minioadmin',
-    secret_access_key: 'minioadmin',
-    region: 'us-east-1',
-    endpoint: 'http://127.0.0.1:9000',
-    force_path_style: true,
-    bucket: BUCKET
-  })
-  s3_start = Time.now
-  (1..COUNT).each do |e|
-    store.write(e, e)
-    store.read(e)
-  end
-  s3_duration = Time.now - s3_start
-  puts "S3CacheStore duration: #{s3_duration} sec (#{s3_duration / COUNT} s/key rw)"
+  store = ActiveSupport::Cache::S3CacheStore.new(bucket: ENV["AWS_S3_GENERAL_BUCKET"], prefix: "benchmark/")
+  bench(store, store.class.name + " (general)")
 end
 
-def teardown
-  system("docker stop #{REDIS}")
-  system("docker stop #{MINIO}")
+def bench_s3_express_cache_store
+  store = ActiveSupport::Cache::S3CacheStore.new(bucket: ENV["AWS_S3_DIRECTORY_BUCKET"], prefix: "benchmark/")
+  bench(store, store.class.name + " (express)")
 end
 
-begin
-  setup()
-
-  puts "\n\n===== start benchmark =========="
-  bench_redis_cache_store()
-  bench_s3_cache_store()
-  puts "===== end benchmark ============\n\n"
-ensure
-  teardown()
-end
-
+bench_redis_cache_store
+bench_s3_cache_store
+bench_s3_express_cache_store
