@@ -91,7 +91,7 @@ module LocalCacheBehavior
       @cache.write(key, type: value)
       local_value = @cache.read(key)
       assert_equal(value, local_value.delete(:type))
-      assert_equal({ type: value }, @cache.read(key))
+      assert_equal({type: value}, @cache.read(key))
     end
   end
 
@@ -247,7 +247,7 @@ module LocalCacheBehavior
       @cache.write(key, "foo")
       @cache.send(:bypass_local_cache) { @cache.write(key, "bar") }
 
-      assert_equal({ key => "foo" }, @cache.read_multi(key))
+      assert_equal({key => "foo"}, @cache.read_multi(key))
     end
   end
 

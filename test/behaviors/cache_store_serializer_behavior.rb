@@ -46,9 +46,10 @@ module CacheStoreSerializerBehavior
   end
 
   private
-    def with_format(format_version, &block)
-      ActiveSupport.deprecator.silence do
-        ActiveSupport::Cache.with(format_version: format_version, &block)
-      end
+
+  def with_format(format_version, &block)
+    ActiveSupport.deprecator.silence do
+      ActiveSupport::Cache.with(format_version: format_version, &block)
     end
+  end
 end

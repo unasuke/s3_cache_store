@@ -45,7 +45,7 @@ module CacheStoreCoderBehavior
   def test_coder_receive_the_entry_on_read_multi
     coder = SpyCoder.new
     @store = lookup_store(coder: coder)
-    @store.write_multi({ "foo" => "bar", "egg" => "spam" })
+    @store.write_multi({"foo" => "bar", "egg" => "spam"})
     @store.read_multi("foo", "egg")
     assert_equal 2, coder.loaded_entries.size
     entry = coder.loaded_entries.first
@@ -60,7 +60,7 @@ module CacheStoreCoderBehavior
   def test_coder_receive_the_entry_on_write_multi
     coder = SpyCoder.new
     @store = lookup_store(coder: coder)
-    @store.write_multi({ "foo" => "bar", "egg" => "spam" })
+    @store.write_multi({"foo" => "bar", "egg" => "spam"})
     assert_equal 2, coder.dumped_entries.size
     entry = coder.dumped_entries.first
     assert_instance_of ActiveSupport::Cache::Entry, entry

@@ -4,7 +4,7 @@ require "securerandom"
 require "active_support/testing/method_call_assertions"
 require "active_support"
 require "active_support/time"
-require_relative 'behaviors'
+require_relative "behaviors"
 
 class S3CacheStoreTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::MethodCallAssertions

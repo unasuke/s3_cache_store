@@ -69,9 +69,9 @@ module CacheStoreVersionBehavior
 
     value = SecureRandom.alphanumeric
 
-    @cache.write([ "something", m1v1 ], value)
-    assert_equal value, @cache.read([ "something", m1v1 ])
-    assert_nil @cache.read([ "something", m1v2 ])
+    @cache.write(["something", m1v1], value)
+    assert_equal value, @cache.read(["something", m1v1])
+    assert_nil @cache.read(["something", m1v2])
   end
 
   def test_fetching_with_model_supporting_cache_version
@@ -108,11 +108,11 @@ module CacheStoreVersionBehavior
     m2v1 = ModelWithKeyAndVersion.new("#{model_name}/2", 1)
     m2v2 = ModelWithKeyAndVersion.new("#{model_name}/2", 2)
 
-    first_fetch_values  = @cache.fetch_multi(m1v1, m2v1) { |m| m.cache_key }
+    first_fetch_values = @cache.fetch_multi(m1v1, m2v1) { |m| m.cache_key }
     second_fetch_values = @cache.fetch_multi(m1v1, m2v2) { |m| m.cache_key + " 2nd" }
 
-    assert_equal({ m1v1 => "#{model_name}/1", m2v1 => "#{model_name}/2" }, first_fetch_values)
-    assert_equal({ m1v1 => "#{model_name}/1", m2v2 => "#{model_name}/2 2nd" }, second_fetch_values)
+    assert_equal({m1v1 => "#{model_name}/1", m2v1 => "#{model_name}/2"}, first_fetch_values)
+    assert_equal({m1v1 => "#{model_name}/1", m2v2 => "#{model_name}/2 2nd"}, second_fetch_values)
   end
 
   def test_version_is_normalized

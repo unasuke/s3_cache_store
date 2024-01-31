@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "active_support/core_ext/object/with"
+require "bigdecimal"
+require "bigdecimal/util"
 
 module CacheStoreFormatVersionBehavior
   extend ActiveSupport::Concern
@@ -8,16 +10,16 @@ module CacheStoreFormatVersionBehavior
   FORMAT_VERSION_SIGNATURES = {
     6.1 => [
       "\x04\x08o".b, # Marshal.dump(entry)
-      "\x04\x08o".b, # Marshal.dump(entry.compressed(...))
+      "\x04\x08o".b # Marshal.dump(entry.compressed(...))
     ],
     7.0 => [
       "\x00\x04\x08[".b, # "\x00" + Marshal.dump(entry.pack)
-      "\x01\x78".b,      # "\x01" + Zlib::Deflate.deflate(...)
+      "\x01\x78".b      # "\x01" + Zlib::Deflate.deflate(...)
     ],
     7.1 => [
       "\x00\x11\x01".b, # ActiveSupport::Cache::Coder#dump
-      "\x00\x11\x81".b, # ActiveSupport::Cache::Coder#dump_compressed
-    ],
+      "\x00\x11\x81".b # ActiveSupport::Cache::Coder#dump_compressed
+    ]
   }
 
   FORMAT_VERSIONS = FORMAT_VERSION_SIGNATURES.keys
@@ -73,7 +75,11 @@ module CacheStoreFormatVersionBehavior
         assert_nil @store.read(key)
         assert_equal false, @store.exist?(key)
       ensure
-        self.class.send(:remove_const, :RemovedConstant) rescue nil
+        begin
+          self.class.send(:remove_const, :RemovedConstant)
+        rescue
+          nil
+        end
       end
 
       test "Compressed Marshal undefined class/module deserialization error with #{format_version} format" do
@@ -88,7 +94,11 @@ module CacheStoreFormatVersionBehavior
         assert_equal({}, @store.read_multi(key))
         assert_equal("new-value", @store.fetch(key) { "new-value" })
       ensure
-        self.class.send(:remove_const, :RemovedConstant) rescue nil
+        begin
+          self.class.send(:remove_const, :RemovedConstant)
+        rescue
+          nil
+        end
       end
     end
 
@@ -120,13 +130,14 @@ module CacheStoreFormatVersionBehavior
   end
 
   private
-    def with_format(format_version, &block)
-      if format_version == 6.1
-        assert_deprecated(ActiveSupport.deprecator) do
-          ActiveSupport::Cache.with(format_version: format_version, &block)
-        end
-      else
+
+  def with_format(format_version, &block)
+    if format_version.to_b == 6.1.to_b
+      assert_deprecated(ActiveSupport.deprecator) do
         ActiveSupport::Cache.with(format_version: format_version, &block)
       end
+    else
+      ActiveSupport::Cache.with(format_version: format_version, &block)
     end
+  end
 end

@@ -71,13 +71,14 @@ module CacheLoggingBehavior
   end
 
   private
-    def assert_logs(pattern, &block)
-      io = StringIO.new
-      ActiveSupport::Cache::Store.with(logger: Logger.new(io, level: :debug), &block)
-      assert_match pattern, io.string
-    end
 
-    def key_pattern(key, namespace: defined?(@namespace) && @namespace)
-      /#{Regexp.escape namespace.to_s}#{":" if namespace}#{Regexp.escape key}/
-    end
+  def assert_logs(pattern, &block)
+    io = StringIO.new
+    ActiveSupport::Cache::Store.with(logger: Logger.new(io, level: :debug), &block)
+    assert_match pattern, io.string
+  end
+
+  def key_pattern(key, namespace: defined?(@namespace) && @namespace)
+    /#{Regexp.escape namespace.to_s}#{":" if namespace}#{Regexp.escape key}/
+  end
 end
