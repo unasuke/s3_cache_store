@@ -132,7 +132,7 @@ module CacheStoreFormatVersionBehavior
   private
 
   def with_format(format_version, &block)
-    if format_version.to_b == 6.1.to_b
+    if format_version.to_d == 6.1.to_d
       assert_deprecated(ActiveSupport.deprecator) do
         ActiveSupport::Cache.with(format_version: format_version, &block)
       end
